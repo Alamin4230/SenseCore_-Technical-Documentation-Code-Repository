@@ -1,0 +1,6 @@
+This web pages are hosted by firebase. thats why it will showes always login page.
+To get access of the web page use this Email and password.
+Email:test@gmail.com
+Password:asdf1234
+thank you 
+Team SenseCore

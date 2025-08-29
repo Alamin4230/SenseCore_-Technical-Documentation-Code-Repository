@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Create Plant Category</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Embedded CSS for quick setup (can be moved to styles.css) -->
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: rgb(224, 247, 250);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #3b7dd3;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin: 12px 0 6px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        form input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .thresholds {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 16px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1b5e20;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 20px;
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Create Plant Category</h1>
+
+        <div class="card">
+            <form id="addPlantForm">
+                <label for="newPlantName">Plant Name</label>
+                <input type="text" id="newPlantName" placeholder="e.g., rice" required />
+
+                <div class="thresholds">
+                    <label for="newMinThreshold">Min Moisture (%)</label>
+                    <input type="number" id="newMinThreshold" min="0" max="100" placeholder="e.g., 60" required />
+
+                    <label for="newMaxThreshold">Max Moisture (%)</label>
+                    <input type="number" id="newMaxThreshold" min="0" max="100" placeholder="e.g., 90" required />
+
+                </div>
+
+                <button type="submit">Add Plant</button>
+            </form>
+
+            <button onclick="location.href='home.html'">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkgzADBmEq_eoQ53QFmpleJ6xf18F3Hrc",
+            authDomain: "smart-irrigation-a181d.firebaseapp.com",
+            databaseURL: "https://smart-irrigation-a181d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "smart-irrigation-a181d",
+            storageBucket: "smart-irrigation-a181d.firebasestorage.app",
+            messagingSenderId: "197064270210",
+            appId: "1:197064270210:web:35fc9f9a5deccdaf40af9b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.getElementById('addPlantForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const name = document.getElementById('newPlantName').value.trim();
+            const min = parseInt(document.getElementById('newMinThreshold').value);
+            const max = parseInt(document.getElementById('newMaxThreshold').value);
+
+            if (!name || isNaN(min) || isNaN(max)) {
+                alert('Please fill in all required fields correctly.');
+                return;
+            }
+
+            const plantData = {
+                min_threshold: min,
+                max_threshold: max
+            };
+
+            database.ref('plants/' + name).set(plantData)
+                .then(() => {
+                    alert('Plant category added successfully!');
+                    window.location.href = 'home.html';
+                })
+                .catch(error => {
+                    alert('Error adding plant: ' + error.message);
+                });
+        });
+    </script>
+</body>
+
+</html>

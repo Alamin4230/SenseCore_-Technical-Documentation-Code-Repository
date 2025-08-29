@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Delete Plant Category</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(rgb(224, 247, 250), #ffffff);
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .plant-image {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin: 20px auto;
+    }
+
+    select,
+    button {
+      width: 80%;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 8px;
+      background-color: #00796b;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #004d40;
+    }
+
+    .sensor-values {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .sensor-card {
+      width: 140px;
+      background: #e0f2f1;
+      border-radius: 10px;
+      padding: 15px;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Delete Plant Category</h1>
+
+    <div class="card">
+      <form id="deletePlantForm">
+        <h1>Select Plant to Delete</h1>
+        <label for="deletePlantSelect"></label>
+        <select id="deletePlantSelect" required>
+          <option value="">Loading plants...</option>
+        </select>
+
+        <button type="submit" class="danger">Delete Plant</button>
+      </form>
+      <br />
+      <button onclick="location.href='home.html'">Back to Dashboard</button>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBkgzADBmEq_eoQ53QFmpleJ6xf18F3Hrc",
+      authDomain: "smart-irrigation-a181d.firebaseapp.com",
+      databaseURL: "https://smart-irrigation-a181d-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "smart-irrigation-a181d",
+      storageBucket: "smart-irrigation-a181d.firebasestorage.app",
+      messagingSenderId: "197064270210",
+      appId: "1:197064270210:web:35fc9f9a5deccdaf40af9b"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Load all plants into dropdown
+    window.onload = () => {
+      const select = document.getElementById('deletePlantSelect');
+      database.ref('plants').once('value', snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          select.innerHTML = '<option value="">Select Plant to Delete</option>';
+          Object.keys(data).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+          });
+        } else {
+          select.innerHTML = '<option value="">No plants found</option>';
+        }
+      });
+    };
+
+    // Delete handler
+    document.getElementById('deletePlantForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const plant = document.getElementById('deletePlantSelect').value;
+      if (!plant) {
+        alert('Please select a plant to delete.');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete "${plant}"?`)) return;
+
+      database.ref('plants/' + plant).remove()
+        .then(() => {
+          alert('Plant category deleted successfully!');
+          window.location.reload();
+        })
+        .catch(error => {
+          alert('Error: ' + error.message);
+        });
+    });
+  </script>
+</body>
+
+</html>

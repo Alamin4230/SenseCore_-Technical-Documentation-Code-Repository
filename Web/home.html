@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Irrigation Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(rgb(224, 247, 250), #ffffff);
+      margin: 0; padding: 20px; text-align: center;
+    }
+    .container { max-width: 1200px; margin: auto; }
+    .card { background: white; border-radius: 15px; box-shadow: 0px 4px 12px rgba(0,0,0,0.1); padding: 20px; margin: 20px 0; }
+    select, button { width: 80%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; background-color: #00796b; color: white; font-size: 16px; cursor: pointer; }
+    button:hover { background-color: #004d40; }
+    .sensor-values { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+    .sensor-card { width: 140px; background: #e0f2f1; border-radius: 10px; padding: 15px; }
+    canvas { margin-top: 20px; }
+    .prediction-card { background: #ffecb3; color: #4e342e; border-left: 6px solid #ff9800; }
+
+    /* Paused button style */
+    .button-paused { background-color: orange !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Smart Irrigation System</h1>
+
+    <!-- Sensor Data -->
+    <div class="card">
+      <h2>Real Time Sensor Data</h2>
+      <div class="sensor-values">
+        <div class="sensor-card"><h4>Soil Moisture</h4><p><span id="soilMoisture">Loading...</span>%</p></div>
+        <div class="sensor-card"><h4>Temperature</h4><p><span id="temperature">Loading...</span>°C</p></div>
+        <div class="sensor-card"><h4>Humidity</h4><p><span id="humidity">Loading...</span>%</p></div>
+        <div class="sensor-card"><h4>Motor</h4><p><span id="motorStatus">Loading...</span></p></div>
+        <div class="sensor-card"><h4>Rain</h4><p><span id="rainStatus">Loading...</span></p></div>
+        <div class="sensor-card"><h4>Motion</h4><p><span id="pirStatus">Loading...</span></p></div>
+      </div>
+    </div>
+
+    <!-- Prediction -->
+    <div border-radius: 15px>
+      <h2>Irrigation Prediction</h2>
+      <h3><span id="prediction">Calculating...</span></h3>
+    </div>
+
+    <!-- Plant & Motor Control -->
+    <div class="card">
+      <h2>Plant & Motor Control</h2>
+      <h3 id="current_plant">No Plant Selected</h3>
+      <select id="plantSelect"><option value="">-- Select Plant --</option></select>
+      <button onclick="submitPlant()">Submit Plant</button>
+      <button id="pauseRealtimeBtn">Pause Realtime</button>
+      <button onclick="window.location.href='create.html'">Create Plant Category</button>
+      <button onclick="window.location.href='delete.html'">Delete Plant Category</button>
+      <button id="manualToggleBtn">Enable Manual Mode</button>
+      <div id="manualControls" style="display:none;">
+        <button onclick="setMotorStatus('On')">Motor ON</button>
+        <button onclick="setMotorStatus('Off')">Motor OFF</button>
+      </div>
+      <button onclick="logout()">Log out</button>
+    </div>
+
+    <canvas id="soilChart" width="400" height="200"></canvas>
+    <canvas id="tempChart" width="400" height="200"></canvas>
+  </div>
+
+<script>
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBkgzADBmEq_eoQ53QFmpleJ6xf18F3Hrc",
+    authDomain: "smart-irrigation-a181d.firebaseapp.com",
+    databaseURL: "https://smart-irrigation-a181d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "smart-irrigation-a181d",
+    storageBucket: "smart-irrigation-a181d.appspot.com",
+    messagingSenderId: "197064270210",
+    appId: "1:197064270210:web:35fc9f9a5deccdaf40af9b"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  let manualMode = false;
+  let pauseRealtime = false;
+
+  // Manual mode toggle
+  document.getElementById("manualToggleBtn").addEventListener("click", () => {
+    manualMode = !manualMode;
+    db.ref("/motor_manual").set(manualMode);
+    document.getElementById("manualControls").style.display = manualMode ? "block" : "none";
+    document.getElementById("manualToggleBtn").textContent = manualMode ? "Disable Manual Mode" : "Enable Manual Mode";
+  });
+
+  // Pause/Resume button toggle
+  const pauseBtn = document.getElementById("pauseRealtimeBtn");
+  pauseBtn.addEventListener("click", () => {
+    pauseRealtime = !pauseRealtime;
+    db.ref("/pause_realtime").set(pauseRealtime);
+    updatePauseButton(pauseRealtime);
+  });
+
+  function updatePauseButton(paused) {
+    if (paused) {
+      pauseBtn.textContent = "Resume Realtime";
+      pauseBtn.classList.add("button-paused");
+    } else {
+      pauseBtn.textContent = "Pause Realtime";
+      pauseBtn.classList.remove("button-paused");
+    }
+  }
+
+  function setMotorStatus(status) { db.ref("/motor_status").set(status); }
+
+  function listenSensorData() {
+    db.ref().on("value", snap => {
+      const data = snap.val() || {};
+      document.getElementById("soilMoisture").innerText = data.soil_moisture ?? "No Data";
+      document.getElementById("temperature").innerText = data.temperature ?? "No Data";
+      document.getElementById("humidity").innerText = data.humidity ?? "No Data";
+      document.getElementById("rainStatus").innerText = data.rain_status ?? "No Data";
+      document.getElementById("pirStatus").innerText = data.pir_status ?? "No Data";
+      document.getElementById("motorStatus").innerText = data.motor_status ?? "No Data";
+      document.getElementById("current_plant").innerText = data.plant_name ?? "No Plant Selected";
+      document.getElementById("prediction").innerText = data.next_irrigation ?? "Calculating...";
+      updateCharts(data.soil_moisture, data.temperature);
+
+      // Restore pause and manual mode states
+      pauseRealtime = data.pause_realtime ?? false;
+      updatePauseButton(pauseRealtime);
+
+      manualMode = data.motor_manual ?? false;
+      document.getElementById("manualControls").style.display = manualMode ? "block" : "none";
+      document.getElementById("manualToggleBtn").textContent = manualMode ? "Disable Manual Mode" : "Enable Manual Mode";
+
+      // Set selected plant in dropdown
+      const plantSelect = document.getElementById('plantSelect');
+      if (data.plant_name) plantSelect.value = data.plant_name;
+    });
+  }
+  listenSensorData();
+
+  function loadPlantCategories() {
+    const sel = document.getElementById('plantSelect');
+    db.ref('plants').once('value').then(snap => {
+      const plants = snap.val();
+      sel.innerHTML = '<option value="">-- Select Plant --</option>';
+      if (plants) {
+        Object.keys(plants).forEach(name => { sel.innerHTML += `<option value="${name}">${name}</option>`; });
+      } else {
+        db.ref('plants/Default').set({ min_threshold: 40, max_threshold: 80 })
+          .then(() => sel.innerHTML += '<option value="Default">Default</option>');
+      }
+    });
+  }
+  loadPlantCategories();
+
+  function submitPlant() {
+    const plant = document.getElementById('plantSelect').value;
+    if (!plant) return alert("Please select a plant!");
+    db.ref('plants/' + plant).once('value').then(snap => {
+      if (!snap.exists()) return alert("Plant data not found!");
+      const d = snap.val();
+      db.ref('/').update({ plant_name: plant, min_threshold: d.min_threshold, max_threshold: d.max_threshold })
+        .then(() => alert("Plant settings updated successfully!"))
+        .catch(e => alert("Failed to update: " + e));
+    });
+  }
+
+  const soilChart = new Chart(document.getElementById('soilChart').getContext('2d'), {
+    type: 'line', data: { labels: [], datasets: [{ label: 'Soil Moisture (%)', data: [], borderColor: 'green', fill: false }] },
+    options: { scales: { x: { display: false }, y: { min: 0, max: 100 } } }
+  });
+  const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
+    type: 'line', data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [], borderColor: 'red', fill: false }] },
+    options: { scales: { x: { display: false }, y: { min: 0, max: 50 } } }
+  });
+
+  function updateCharts(soil, temp) {
+    if (soil !== undefined) {
+      soilChart.data.labels.push("");
+      soilChart.data.datasets[0].data.push(soil);
+      if (soilChart.data.datasets[0].data.length > 20) { soilChart.data.datasets[0].data.shift(); soilChart.data.labels.shift(); }
+      soilChart.update();
+    }
+    if (temp !== undefined) {
+      tempChart.data.labels.push("");
+      tempChart.data.datasets[0].data.push(temp);
+      if (tempChart.data.datasets[0].data.length > 20) { tempChart.data.datasets[0].data.shift(); tempChart.data.labels.shift(); }
+      tempChart.update();
+    }
+  }
+
+  function logout() { sessionStorage.clear(); window.location.href="index.html"; }
+</script>
+</body>
+</html>

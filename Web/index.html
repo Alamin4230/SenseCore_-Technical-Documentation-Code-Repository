@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Irrigation - Welcome</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f0f8ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: #ffffff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #0077cc;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .toggle a {
+      color: #0077cc;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2 id="formTitle">Login</h2>
+    <form id="authForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="Enter email" required />
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter password" required />
+      <button type="submit" id="submitBtn">Login</button>
+    </form>
+    <div class="toggle">
+      <p id="toggleText">Don't have an account? <a id="toggleLink">Sign Up</a></p>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBkgzADBmEq_eoQ53QFmpleJ6xf18F3Hrc",
+      authDomain: "smart-irrigation-a181d.firebaseapp.com",
+      databaseURL: "https://smart-irrigation-a181d-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "smart-irrigation-a181d",
+      storageBucket: "smart-irrigation-a181d.firebasestorage.app",
+      messagingSenderId: "197064270210",
+      appId: "1:197064270210:web:35fc9f9a5deccdaf40af9b"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    let isLogin = true;
+
+    document.getElementById("toggleLink").addEventListener("click", () => {
+      isLogin = !isLogin;
+      document.getElementById("formTitle").textContent = isLogin ? "Login" : "Sign Up";
+      document.getElementById("submitBtn").textContent = isLogin ? "Login" : "Sign Up";
+      document.getElementById("toggleText").innerHTML = isLogin
+        ? `Don't have an account? <a id="toggleLink">Sign Up</a>`
+        : `Already have an account? <a id="toggleLink">Login</a>`;
+      document.getElementById("toggleLink").addEventListener("click", () => location.reload());
+    });
+
+    document.getElementById("authForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (isLogin) {
+        auth.signInWithEmailAndPassword(email, password)
+          .then(() => {
+            sessionStorage.setItem("loggedIn", "true");  // ✅ Set session flag
+            window.location.href = "home.html";      // ✅ Redirect to dashboard
+          })
+          .catch(error => {
+            alert("Login failed: " + error.message);
+          });
+      } else {
+        auth.createUserWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            const uid = userCredential.user.uid;
+            db.ref("users/" + uid).set({ email });
+            sessionStorage.setItem("loggedIn", "true");  // ✅ Set session flag
+            alert("Account created!");
+            window.location.href = "home.html";
+          })
+          .catch(error => {
+            alert("Sign up failed: " + error.message);
+          });
+      }
+    });
+  </script>
+</body>
+
+</html>
