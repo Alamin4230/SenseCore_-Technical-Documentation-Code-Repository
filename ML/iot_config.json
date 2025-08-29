@@ -1,0 +1,15 @@
+{
+  "model_path": "irrigation_model.joblib",
+  "min_moisture": 35,
+  "max_moisture": 45,
+  "sensor_read_interval": 5,
+  "prediction_horizon": 24,
+  "weather_check_interval": 60,
+  "api_keys": {
+    "openweathermap": "YOUR_API_KEY_HERE"
+  },
+  "location": {
+    "latitude": 0.0,
+    "longitude": 0.0
+  }
+}
